@@ -18,6 +18,7 @@
 
 #include "inputdevice.h"
 void inputdevice_release_all_keys (void);
+extern int mouse_port[NORMAL_JPORTS];
 
 #include "drawing.h"
 #include "hotkeys.h"
@@ -75,23 +76,40 @@ void target_default_options (struct uae_prefs *p, int type)
 }
 
 /* --- mouse input --- */
-void retro_mouse(int dx, int dy)
+void retro_mouse(int port, int dx, int dy)
 {
-    changed_prefs.jports[0].id = JSEM_MICE;
-    setmousestate (0, 0, dx, 0);
-    setmousestate (0, 1, dy, 0);
+    mouse_port[port] = 1;
+    setmousestate(port, 0, dx, 0);
+    setmousestate(port, 1, dy, 0);
 }
 
-void retro_mouse_but0(int down)
+void retro_mouse_button(int port, int button, int state)
 {
-    changed_prefs.jports[0].id = JSEM_MICE;
-    setmousebuttonstate (0, 0, down);
+    mouse_port[port] = 1;
+    setmousebuttonstate(port, button, state);
 }
 
-void retro_mouse_but1(int down)
+/* --- joystick input --- */
+void retro_joystick(int port, int axis, int state)
 {
-    changed_prefs.jports[0].id = JSEM_MICE;
-    setmousebuttonstate (0, 1, down);
+    // disable mouse in normal ports, joystick/mouse inverted
+    if(port < 2)
+    {
+        int m_port = (port == 0) ? 1 : 0;
+        mouse_port[m_port] = 0;
+    }
+    setjoystickstate(port, axis, state, 1);
+}
+
+void retro_joystick_button(int port, int button, int state)
+{
+    // disable mouse in normal ports, joystick/mouse inverted
+    if(port < 2)
+    {
+        int m_port = (port == 0) ? 1 : 0;
+        mouse_port[m_port] = 0;
+    }
+    setjoybuttonstate(port, button, state);
 }
 
 /* --- keyboard input --- */
@@ -569,15 +587,22 @@ struct inputdevice_functions inputdevicefunc_mouse = {
 
 int input_get_default_mouse (struct uae_input_device *uid, int num, int port, int af, bool gp, bool wheel)
 {
-    /* Supports only one mouse */
     uid[0].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE1_HORIZ;
     uid[0].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE1_VERT;
     uid[0].eventid[ID_AXIS_OFFSET + 2][0]   = INPUTEVENT_MOUSE1_WHEEL;
     uid[0].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY1_FIRE_BUTTON;
     uid[0].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY1_2ND_BUTTON;
     uid[0].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY1_3RD_BUTTON;
+
+    uid[1].eventid[ID_AXIS_OFFSET + 0][0]   = INPUTEVENT_MOUSE2_HORIZ;
+    uid[1].eventid[ID_AXIS_OFFSET + 1][0]   = INPUTEVENT_MOUSE2_VERT;
+    uid[1].eventid[ID_BUTTON_OFFSET + 0][0] = INPUTEVENT_JOY2_FIRE_BUTTON;
+    uid[1].eventid[ID_BUTTON_OFFSET + 1][0] = INPUTEVENT_JOY2_2ND_BUTTON;
+    uid[1].eventid[ID_BUTTON_OFFSET + 2][0] = INPUTEVENT_JOY2_3RD_BUTTON;
+
     uid[0].enabled = 1;
-	return 0;
+    uid[1].enabled = 1;
+    return 0;
 }
 
 /***************************************************************
